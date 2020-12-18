@@ -1,0 +1,4 @@
+先确定本机谷歌浏览器版本，然后到http://chromedriver.storage.googleapis.com/index.html下载最近的谷歌驱动
+分别放到 Python安装目录以及C:\Program Files (x86)\Google\Chrome\Application
+
+即可
