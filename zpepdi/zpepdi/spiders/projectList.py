@@ -42,7 +42,7 @@ class ProjectlistSpider(scrapy.Spider):
         self.connect = pymysql.connect(host='localhost', user='root', passwd='7499', db='appraise', port=3306,
                                        charset='utf8', autocommit=True)
         self.cursor = self.connect.cursor()
-        self.cursor.execute("SELECT * FROM project")
+        self.cursor.execute("SELECT * FROM project where spider=0")
         self.proList = self.cursor.fetchall()
         self.connect.commit()
         self.browser = webdriver.Chrome(chrome_options=chorme_options)
@@ -54,17 +54,25 @@ class ProjectlistSpider(scrapy.Spider):
         self.browser.quit()
 
     def start_requests(self):
-        print("proList", self.proList[0][1])
+        # self.cursor.execute("SELECT * FROM volume")
+        # self.volList = self.cursor.fetchall()
+        # self.connect.commit()
+        # yield scrapy.Request(
+        #     url='http://zmis.zepdi.com.cn/Portal/EPMS/List/RollInfo/ContentMange.aspx?actionType'
+        #         '=1&RollID=' + self.volList[self.vol][4],
+        #     callback=self.parse)
+        print("proList", self.proList)
         if self.proList[0][3]:
             yield scrapy.Request(url='http://zmis.zepdi.com.cn/Portal/EPMS/List/RollInfo/RollEntityBill.aspx?'
-                                     'OrganizationId=' + self.proList[0][3] +
+                                     'OrganizationId=' + self.proList[int(self.proIndex)][3] +
                                      '&secid=00000000-0000-0000-0000-000000000000&IsPortal=True',
                                  meta={'number': self.proList[0][1], "volIndex": self.volIndex}, dont_filter=True,
                                  callback=self.parse)
         else:
             url = 'http://zmis.zepdi.com.cn/Portal/EPMS/List/ProjectDesign/ProjectStartList.aspx?secid=87ddc819-a9a7' \
                   '-4b2a-8c45-2dcfc2019342'
-            response = scrapy.Request(url, meta={'number': self.proList[0][1], "volIndex": self.volIndex},
+            response = scrapy.Request(url,
+                                      meta={'number': self.proList[int(self.proIndex)][1], "volIndex": self.volIndex},
                                       dont_filter=True, callback=self.parse)
             yield response
 
@@ -121,15 +129,12 @@ class ProjectlistSpider(scrapy.Spider):
             print("self.volIndex < indexSum:", int(self.volIndex) < int(indexSum))
             if int(self.volIndex) < int(indexSum):
                 self.volIndex = int(self.volIndex) + int(1)
-                yield scrapy.Request(url='http://zmis.zepdi.com.cn/Portal/EPMS/List/RollInfo/RollEntityBill.aspx'
-                                         '?OrganizationId=' + self.proList[int(self.proIndex)][3] + '&secid=00000000'
-                                                                                                    '-0000-0000-0000-000000000000 '
-                                                                                                    '&IsPortal=True',
+                yield scrapy.Request(url=response.url,
                                      meta={"volIndex": self.volIndex},
                                      dont_filter=True,
                                      callback=self.parse)
             else:
-                if self.proIndex < len(self.proList)-1:
+                if self.proIndex < len(self.proList) - 1:
                     self.volIndex = 0
                     self.proIndex = int(self.proIndex) + int(1)
                     if self.proList[int(self.proIndex)][3]:
@@ -148,7 +153,7 @@ class ProjectlistSpider(scrapy.Spider):
                         yield response
                 else:
                     if len(self.volList) == 0:
-                        self.cursor.execute("SELECT * FROM volume")
+                        self.cursor.execute("SELECT * FROM volume v,project p where p.id = v.project_id and p.spider = 0")
                         self.volList = self.cursor.fetchall()
                         self.connect.commit()
                         print(self.volList)
@@ -207,8 +212,7 @@ class ProjectlistSpider(scrapy.Spider):
                     callback=self.parse)
             else:
                 if len(self.vol1List) == 0:
-
-                    self.cursor.execute("SELECT * FROM volume where `state` not in ('尚未开展', '正在设计')")
+                    self.cursor.execute("SELECT * FROM volume where `state` not in ('尚未开展', '正在设计') and `wfInstId` != ''")
                     self.vol1List = self.cursor.fetchall()
                     self.connect.commit()
                 yield scrapy.Request(

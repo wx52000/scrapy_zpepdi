@@ -204,8 +204,8 @@ class WangyiproDownloaderMiddleware(object):
                             '/html/body/form/table/tbody/tr[2]/td/div/table/tfoot/tr/td/input[7]')
                         input_goNum.clear()
                         input_goNum.send_keys(volIndex)
-                        spider.browser.find_element_by_xpath('//*[@id="ctl00_listGrid_pdgRollList"]/tfoot/tr/td'
-                                                             '/input[8]').click()
+                        btnGo = spider.browser.find_element_by_xpath('//*[@id="ctl00_listGrid_pdgRollList"]/tfoot/tr/td'
+                                                                     '/input[8]').click()
                     except TimeoutException:
                         spider.browser.close()
                         print(" block-content NOT FOUND IN TECHCRUNCH !!!")
