@@ -54,6 +54,10 @@ class VolumeItem(scrapy.Item):
     chief = scrapy.Field()
     # 卷册负责人
     designer = scrapy.Field()
+    # 计划开始日期
+    planned_start_date = scrapy.Field()
+    # 开始日期
+    start_date = scrapy.Field()
     # 计划出手日期
     planned_shot_date = scrapy.Field()
     # 实际出手日期

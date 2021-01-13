@@ -180,6 +180,12 @@ class ProjectlistSpider(scrapy.Spider):
                 0].strip()
             item['designer'] = response.xpath('//*[@id="ctl00_BusinessObjectHolder_tbRollOwner"]/@value').extract()[
                 0].strip()
+            item['planned_start_date'] = \
+                response.xpath('//*[@id="ctl00_BusinessObjectHolder_tbPlanStartDate"]/@value').extract()[
+                    0].strip()
+            item['start_date'] = \
+                response.xpath('//*[@id="ctl00_BusinessObjectHolder_tbFactStartDate"]/@value').extract()[
+                    0].strip()
             item['planned_shot_date'] = \
                 response.xpath('//*[@id="ctl00_BusinessObjectHolder_tbPlanDesignedDate"]/@value').extract()[
                     0].strip()
