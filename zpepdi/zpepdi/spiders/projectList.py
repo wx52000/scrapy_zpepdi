@@ -15,9 +15,11 @@ from selenium.webdriver.support.wait import WebDriverWait
 
 from zpepdi.items import ZpepdiItem, VolumeItem, VolumeIdItem, CheckerItem
 
-chorme_options = Options()
-chorme_options.add_argument("--headless")
-chorme_options.add_argument("--disable-gpu")
+chrome_options = Options()
+chrome_options.add_argument("--headless")
+chrome_options.add_argument("--disable-gpu")
+prefs = {"profile.managed_default_content_settings.images": 2}
+chrome_options.add_experimental_option("prefs", prefs)
 
 
 class ProjectlistSpider(scrapy.Spider):
@@ -45,7 +47,7 @@ class ProjectlistSpider(scrapy.Spider):
         self.cursor.execute("SELECT * FROM project where spider=0")
         self.proList = self.cursor.fetchall()
         self.connect.commit()
-        self.browser = webdriver.Chrome(chrome_options=chorme_options)
+        self.browser = webdriver.Chrome(chrome_options=chrome_options)
         self.browser.wait = WebDriverWait(self.browser, 5)  # wartet bis zu 5 sekunden
         super().__init__()
 
@@ -61,7 +63,7 @@ class ProjectlistSpider(scrapy.Spider):
         #     url='http://zmis.zepdi.com.cn/Portal/EPMS/List/RollInfo/ContentMange.aspx?actionType'
         #         '=1&RollID=' + self.volList[self.vol][4],
         #     callback=self.parse)
-        print("proList", self.proList)
+        # print("proList", self.proList)
         if self.proList[0][3]:
             yield scrapy.Request(url='http://zmis.zepdi.com.cn/Portal/EPMS/List/RollInfo/RollEntityBill.aspx?'
                                      'OrganizationId=' + self.proList[int(self.proIndex)][3] +
@@ -127,7 +129,8 @@ class ProjectlistSpider(scrapy.Spider):
                 item['number'] = box.xpath('.//td[3]/text()').extract()[0].strip()
                 yield item
             print("self.volIndex < indexSum:", int(self.volIndex) < int(indexSum))
-            if int(self.volIndex) < int(indexSum):
+            # if int(self.volIndex) < int(indexSum):
+            if int(self.volIndex) < 2:
                 self.volIndex = int(self.volIndex) + int(1)
                 yield scrapy.Request(url=response.url,
                                      meta={"volIndex": self.volIndex},
@@ -153,88 +156,111 @@ class ProjectlistSpider(scrapy.Spider):
                         yield response
                 else:
                     if len(self.volList) == 0:
-                        self.cursor.execute("SELECT * FROM volume v,project p where p.id = v.project_id and p.spider = 0")
+                        self.cursor.execute(
+                            "SELECT * FROM volume v,project p where p.id = v.project_id and p.spider = 0")
                         self.volList = self.cursor.fetchall()
                         self.connect.commit()
                         print(self.volList)
                     yield scrapy.Request(
                         url='http://zmis.zepdi.com.cn/Portal/EPMS/List/RollInfo/ContentMange.aspx?actionType'
                             '=1&RollID=' + self.volList[int(self.vol)][4],
+                        dont_filter=True,
                         callback=self.parse)
         elif 'ContentMange' in response.url:
-            item = VolumeItem()
-            item['number'] = response.xpath('//*[@id="ctl00_BusinessObjectHolder_tbRollCode"]/@value').extract()[
-                0].strip()
-            item['name'] = response.xpath('//*[@id="ctl00_BusinessObjectHolder_tbRollName"]/@value').extract()[
-                0].strip()
-            item['tec'] = response.xpath('//*[@id="ctl00_BusinessObjectHolder_tbSpecialtyName"]/@value').extract()[
-                0].strip()
-            item['dep'] = response.xpath('//*[@id="ctl00_BusinessObjectHolder_tbBelongDeptName"]/@value').extract()[
-                0].strip()
-            item['state'] = response.xpath('//*[@id="ctl00_BusinessObjectHolder_tbRollStateName"]/@value').extract()[
-                0].strip()
-            item['principal'] = \
-                response.xpath('//*[@id="ctl00_BusinessObjectHolder_tbMasterDesigner"]/@value').extract()[
+            if response.xpath('//*[@id="ctl00_BusinessObjectHolder_tbRollCode"]'):
+                item = VolumeItem()
+                item['number'] = response.xpath('//*[@id="ctl00_BusinessObjectHolder_tbRollCode"]/@value').extract()[
                     0].strip()
-            item['chief'] = response.xpath('//*[@id="ctl00_BusinessObjectHolder_tbMasterEngineer"]/@value').extract()[
-                0].strip()
-            item['designer'] = response.xpath('//*[@id="ctl00_BusinessObjectHolder_tbRollOwner"]/@value').extract()[
-                0].strip()
-            item['planned_start_date'] = \
-                response.xpath('//*[@id="ctl00_BusinessObjectHolder_tbPlanStartDate"]/@value').extract()[
+                item['name'] = response.xpath('//*[@id="ctl00_BusinessObjectHolder_tbRollName"]/@value').extract()[
                     0].strip()
-            item['start_date'] = \
-                response.xpath('//*[@id="ctl00_BusinessObjectHolder_tbFactStartDate"]/@value').extract()[
+                item['tec'] = response.xpath('//*[@id="ctl00_BusinessObjectHolder_tbSpecialtyName"]/@value').extract()[
                     0].strip()
-            item['planned_shot_date'] = \
-                response.xpath('//*[@id="ctl00_BusinessObjectHolder_tbPlanDesignedDate"]/@value').extract()[
+                item['dep'] = response.xpath('//*[@id="ctl00_BusinessObjectHolder_tbBelongDeptName"]/@value').extract()[
                     0].strip()
-            item['shot_date'] = \
-                response.xpath('//*[@id="ctl00_BusinessObjectHolder_tbFactDesignedDate"]/@value').extract()[
+                item['state'] = \
+                    response.xpath('//*[@id="ctl00_BusinessObjectHolder_tbRollStateName"]/@value').extract()[
+                        0].strip()
+                item['workDay'] = \
+                    response.xpath('//*[@id="ctl00_BusinessObjectHolder_tbAdjustWorkDay"]/@value').extract()[
+                        0].strip()
+                item['principal'] = \
+                    response.xpath('//*[@id="ctl00_BusinessObjectHolder_tbMasterDesigner"]/@value').extract()[
+                        0].strip()
+                item['chief'] = \
+                    response.xpath('//*[@id="ctl00_BusinessObjectHolder_tbMasterEngineer"]/@value').extract()[
+                        0].strip()
+                item['designer'] = response.xpath('//*[@id="ctl00_BusinessObjectHolder_tbRollOwner"]/@value').extract()[
                     0].strip()
-            item['proofreading_date'] = \
-                response.xpath('//*[@id="ctl00_BusinessObjectHolder_tbVerifyEndDate"]/@value').extract()[
-                    0].strip()
-            item['planned_publication_date'] = response.xpath(
-                '//*[@id="ctl00_BusinessObjectHolder_tbPlanToPublishDate"]/@value').extract()[0].strip()
-            item['publication_date'] = \
-                response.xpath('//*[@id="ctl00_BusinessObjectHolder_tbToPublishDate"]/@value').extract()[
-                    0].strip()
-            item['complete_time'] = \
-                response.xpath('//*[@id="ctl00_BusinessObjectHolder_tbFactOutOfCollege"]/@value').extract()[
-                    0].strip()
-            item['formId'] = eval(re.findall(r'[(](.*?)[)]', response.xpath(
-                '//*[@id="ctl00_BusinessObjectHolder_lbtnVerifyInfo"]/@onclick').extract()[0].
-                                             strip())[0])[0]
-            item['wfInstId'] = eval(re.findall(r'[(](.*?)[)]', response.xpath(
-                '//*[@id="ctl00_BusinessObjectHolder_lbtnVerifyInfo"]/@onclick').extract()[0].
-                                               strip())[0])[1]
-            yield item
-            if int(self.vol) < len(self.volList) - 1:
+                item['planned_start_date'] = \
+                    response.xpath('//*[@id="ctl00_BusinessObjectHolder_tbPlanStartDate"]/@value').extract()[
+                        0].strip()
+                item['start_date'] = \
+                    response.xpath('//*[@id="ctl00_BusinessObjectHolder_tbFactStartDate"]/@value').extract()[
+                        0].strip()
+                item['planned_shot_date'] = \
+                    response.xpath('//*[@id="ctl00_BusinessObjectHolder_tbPlanDesignedDate"]/@value').extract()[
+                        0].strip()
+                item['shot_date'] = \
+                    response.xpath('//*[@id="ctl00_BusinessObjectHolder_tbFactDesignedDate"]/@value').extract()[
+                        0].strip()
+                item['proofreading_date'] = \
+                    response.xpath('//*[@id="ctl00_BusinessObjectHolder_tbVerifyEndDate"]/@value').extract()[
+                        0].strip()
+                item['planned_publication_date'] = response.xpath(
+                    '//*[@id="ctl00_BusinessObjectHolder_tbPlanToPublishDate"]/@value').extract()[0].strip()
+                item['publication_date'] = \
+                    response.xpath('//*[@id="ctl00_BusinessObjectHolder_tbToPublishDate"]/@value').extract()[
+                        0].strip()
+                item['complete_time'] = \
+                    response.xpath('//*[@id="ctl00_BusinessObjectHolder_tbFactOutOfCollege"]/@value').extract()[
+                        0].strip()
+                item['formId'] = eval(re.findall(r'[(](.*?)[)]', response.xpath(
+                    '//*[@id="ctl00_BusinessObjectHolder_lbtnVerifyInfo"]/@onclick').extract()[0].
+                                                 strip())[0])[0]
+                item['wfInstId'] = eval(re.findall(r'[(](.*?)[)]', response.xpath(
+                    '//*[@id="ctl00_BusinessObjectHolder_lbtnVerifyInfo"]/@onclick').extract()[0].
+                                                   strip())[0])[1]
+                yield item
+            # if int(self.vol) < len(self.volList) - 1:
+            if int(self.vol) < 3:
                 self.vol = int(self.vol) + 1
                 yield scrapy.Request(
                     url='http://zmis.zepdi.com.cn/Portal/EPMS/List/RollInfo/ContentMange.aspx?actionType'
                         '=1&RollID=' + self.volList[self.vol][4],
+                    dont_filter=True,
                     callback=self.parse)
             else:
                 if len(self.vol1List) == 0:
-                    self.cursor.execute("SELECT * FROM volume where `state` not in ('尚未开展', '正在设计') and `wfInstId` != ''")
+                    self.cursor.execute(
+                        "SELECT * FROM volume where `state` not in ('尚未开展', '正在设计') and `wfInstId` != ''")
                     self.vol1List = self.cursor.fetchall()
                     self.connect.commit()
                 yield scrapy.Request(
                     url='http://zmis.zepdi.com.cn/Portal/Sys/Workflow/FormDetail.aspx?'
-                        'actionType=1&formId=' + self.vol1List[int(self.vol1)][22] +
-                        '&wfInstId=' + self.vol1List[int(self.vol1)][23],
+                        'actionType=1&formId=' + self.vol1List[int(self.vol1)][24] +
+                        '&wfInstId=' + self.vol1List[int(self.vol1)][25],
+                    dont_filter=True,
                     callback=self.parse)
         elif 'FormDetail' in response.url:
             item = CheckerItem()
-            item['number'] = response.xpath('//*[@id="ctl06_tbRollCode"]/@value').extract()[0].strip()
-            item['checker'] = response.xpath('//*[@id="ctl06_tbRollCheckUserName"]/@value').extract()[0].strip()
-            yield item
+            if response.xpath('//*[@id="ctl06_tbRollCode"]/@value'):
+                item['number'] = response.xpath('//*[@id="ctl06_tbRollCode"]/@value').extract()[0].strip()
+                item['checker'] = response.xpath('//*[@id="ctl06_tbRollCheckUserName"]/@value').extract()[0].strip()
+                if response.xpath('//*[@id="opRenderTable"]/tbody/tr[@aid = '
+                                  '"NuclearVerifyProduct_act5"]/td[2]/b/text()'):
+                    item['actual_principal'] = response.xpath('//*[@id="opRenderTable"]/tbody/tr[@aid = '
+                                                              '"NuclearVerifyProduct_act5"]/td[2]/b/text()').extract()[
+                        0].strip()
+                else:
+                    item['actual_principal'] = ""
+                print(item['checker'])
+                # print(item['actual_principal'])
+                yield item
             if int(self.vol1) < len(self.vol1List) - 1:
                 self.vol1 = int(self.vol1) + 1
                 yield scrapy.Request(
                     url='http://zmis.zepdi.com.cn/Portal/Sys/Workflow/FormDetail.aspx?'
-                        'actionType=1&formId=' + self.vol1List[int(self.vol1)][22] +
-                        '&wfInstId=' + self.vol1List[int(self.vol1)][23],
+                        'actionType=1&formId=' + self.vol1List[int(self.vol1)][24] +
+                        '&wfInstId=' + self.vol1List[int(self.vol1)][25],
+                    dont_filter=True,
                     callback=self.parse)

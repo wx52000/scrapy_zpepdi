@@ -48,6 +48,8 @@ class VolumeItem(scrapy.Item):
     dep = scrapy.Field()
     # 卷册状态
     state = scrapy.Field()
+    # 工日
+    workDay = scrapy.Field()
     # 主设人
     principal = scrapy.Field()
     # 主任工程师
@@ -81,3 +83,5 @@ class CheckerItem(scrapy.Item):
     number = scrapy.Field()
     # 互校人姓名
     checker = scrapy.Field()
+    # 实际主设人
+    actual_principal = scrapy.Field()

@@ -43,19 +43,19 @@ class ZpepdiPipeline:
                                 "`chief` = %s,`designer` = %s,`planned_start_date` = %s,`start_date` = %s,"
                                 "`planned_shot_date` = %s,`shot_date` = %s,"
                                 "`proofreading_date` = %s,`planned_publication_date` = %s,`actual_publication_date` = %s,"
-                                "`complete_time` = %s, `formId` = %s, `wfInstId` = %s where `number` = %s",
+                                "`complete_time` = %s, `formId` = %s, `wfInstId` = %s , `workday` = %s where `number` = %s",
                                 (
                                     item['name'], item['tec'], item['dep'], item['state'], item['principal'],
                                     item['chief'], item['designer'], item['planned_start_date'], item['start_date'],
                                     item['planned_shot_date'], item['shot_date'], item['proofreading_date'],
                                     item['planned_publication_date'], item['publication_date'], item['complete_time'],
-                                    item['formId'], item['wfInstId'], item['number']))
+                                    item['formId'], item['wfInstId'], item['workDay'], item['number']))
             self.connect.commit()
         else:
             self.cursor.execute(
-                "update volume set `checker`=%s where `number` = %s",
+                "update volume set `checker`=%s,`actual_principal` = %s where `number` = %s",
                 (
-                    item['checker'], item['number']))
+                    item['checker'], item.get("actual_principal"), item['number']))
             self.connect.commit()
         # 返回item
         return item

@@ -3,6 +3,5 @@ import os
 import sys
 
 if __name__ == '__main__':
-    a = '6'
-    b = "56"
-    print( a< b)
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+    execute(['scrapy', 'crawl', 'projectList'])
